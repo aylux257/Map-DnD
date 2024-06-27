@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Map Maker</title>
     <link rel="stylesheet" href="./sources/nav-bar.css">
+    <link rel="stylesheet" href="./sources/styles-canva.css">
 </head>
 <body>
     <nav class="nav-bar">
@@ -15,12 +16,14 @@
             <li class="login-logo"><a href="#">Login</a></li>
         </ul>
     </nav>
-    <div id="CanvaDiv">
-        <label><input type="radio" name="drawMode" value="line"> Ligne</label>
-        <label><input type="radio" name="drawMode" value="semi-circle"> Demi-arc</label>
-        <label><input type="radio" name="drawMode" value="quadratic-curve"> Courbe quadratique</label>
-        <button id="clearCanvasButton">Effacer le Canvas</button>
-        <button id="editModeButton">Entrer en mode édition</button>
+    <div class="CanvaDiv">
+        <div>
+            <label><input type="radio" name="drawMode" value="line"> Ligne</label>
+            <label><input type="radio" name="drawMode" value="semi-circle"> Demi-arc</label>
+            <label><input type="radio" name="drawMode" value="quadratic-curve"> Courbe quadratique</label>
+            <button id="clearCanvasButton">Effacer le Canvas</button>
+            <button id="editModeButton">Entrer en mode édition</button>
+        </div>
     </div>
     <canvas id="mapCanvas" width="800" height="600" style="border:1px solid #000000;"></canvas>
     <script src="./sources/map-maker.js"></script>
