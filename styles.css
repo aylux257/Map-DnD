@@ -1,0 +1,95 @@
+/* styles.css */
+
+@font-face {
+    font-family: "SedanSC";
+    src: url("fonts/SedanSC-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: "SedanSC", sans-serif;
+    background-color: #f0f0f0; /* Couleur de fond par défaut */
+}
+
+.nav-bar {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    background-color: antiquewhite;
+    border-bottom: 3px solid #800000;
+    z-index: 1000;
+    transition: top 0.3s;
+}
+
+.nav-bar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.nav-bar ul li {
+    padding: 15px 20px;
+}
+
+.nav-bar ul li a {
+    text-decoration: none;
+    color: #333;
+    font-size: 18px;
+}
+
+.nav-bar .login-logo a {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.container {
+    text-align: center;
+    position: relative;
+    width: 100vw;
+    height: 100%;
+    overflow: hidden;
+}
+
+.container h1 {
+    position: relative;
+    top: 47.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #b22222; /* Rouge terne */
+    z-index: 2;
+}
+
+.container::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 33%;
+    background: url(https://i0.wp.com/dungeonsanddragonsfan.com/wp-content/uploads/2023/12/dnd-release-schedule-2024-hero.png?w=2120&ssl=1) no-repeat center center;
+    background-size: cover;
+    transform: translate(-50%, -50%);
+    opacity: 0.5; /* Image légèrement grisée */
+    z-index: 1;
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .nav-bar ul {
+        flex-direction: column;
+    }
+
+    .nav-bar ul li {
+        padding: 10px 15px;
+    }
+
+    .nav-bar .login-logo a {
+        font-size: 14px;
+    }
+}
