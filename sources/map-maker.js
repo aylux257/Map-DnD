@@ -90,6 +90,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const drawing = drawings[i];
             if (drawing.type === 'line' && isPointNearLine(x, y, drawing.startX, drawing.startY, drawing.endX, drawing.endY)) {
                 return drawing;
+            }else if(drawing.type === 'quadratic-curve' && isPointNearLine(x, y, drawing.startX, drawing.startY, drawing.endX, drawing.endY)){
+                return drawing;
             }
             // Additional selection logic for other shapes can be added here
         }

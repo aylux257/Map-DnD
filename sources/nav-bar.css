@@ -6,6 +6,8 @@
     background-color: antiquewhite;
     border-bottom: 3px solid #800000;
     z-index: 1000;
+    display: flex;
+    align-items: center;
 }
 
 .nav-bar ul {
@@ -14,6 +16,12 @@
     padding: 0;
     display: flex;
     justify-content: space-around;
+    width: 100%;
+}
+
+.nav-bar ul li {
+    display: flex;
+    align-items: center;
 }
 
 .nav-bar ul li a {
