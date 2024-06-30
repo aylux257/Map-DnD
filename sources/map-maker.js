@@ -12,7 +12,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const maxControlPoints = 2; // Number of control points for a quadratic curve
     let isEditing = false; // Flag to indicate if in editing mode
     let selectedDrawing = null; // Currently selected drawing for editing
+    let selectedControlPoint = null; // Currently selected control point for editing
     let offsetX, offsetY; // Offset for moving drawings
+    const controlPointRadius = 5; // Radius of control points for hit detection
 
     // Function to draw a line
     function drawLine(startX, startY, endX, endY) {
@@ -37,6 +39,46 @@ document.addEventListener('DOMContentLoaded', (event) => {
         ctx.stroke();
     }
 
+    // Function to draw a rectangle
+    function drawRectangle(x, y, width, height) {
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.stroke();
+    }
+
+    // Function to draw a circle
+    function drawCircle(centerX, centerY, radius) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+
+    // Function to draw control points
+    function drawControlPoints(drawing) {
+        if (drawing.type === 'line') {
+            drawControlPoint(drawing.startX, drawing.startY);
+            drawControlPoint(drawing.endX, drawing.endY);
+        } else if (drawing.type === 'rectangle') {
+            drawControlPoint(drawing.x, drawing.y);
+            drawControlPoint(drawing.x + drawing.width, drawing.y);
+            drawControlPoint(drawing.x, drawing.y + drawing.height);
+            drawControlPoint(drawing.x + drawing.width, drawing.y + drawing.height);
+        } else if (drawing.type === 'circle') {
+            drawControlPoint(drawing.centerX - drawing.radius, drawing.centerY);
+            drawControlPoint(drawing.centerX + drawing.radius, drawing.centerY);
+            drawControlPoint(drawing.centerX, drawing.centerY - drawing.radius);
+            drawControlPoint(drawing.centerX, drawing.centerY + drawing.radius);
+        }
+        // Additional control points for other shapes can be added here
+    }
+
+    // Function to draw a single control point
+    function drawControlPoint(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, controlPointRadius, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
     // Function to clear the canvas
     function clearCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -51,37 +93,59 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 drawSemiCircle(drawing.centerX, drawing.centerY, drawing.radius, drawing.startAngle, drawing.endAngle);
             } else if (drawing.type === 'quadratic-curve') {
                 drawQuadraticCurve(drawing.startX, drawing.startY, drawing.controlX, drawing.controlY, drawing.endX, drawing.endY);
+            } else if (drawing.type === 'rectangle') {
+                drawRectangle(drawing.x, drawing.y, drawing.width, drawing.height);
+            } else if (drawing.type === 'circle') {
+                drawCircle(drawing.centerX, drawing.centerY, drawing.radius);
             }
         });
+
+        // Draw control points if in editing mode
+        if (isEditing && selectedDrawing) {
+            drawControlPoints(selectedDrawing);
+        }
     }
 
-    // Function to check if a point is near a line
-    function isPointNearLine(px, py, x1, y1, x2, y2, tolerance = 5) {
-        const A = px - x1;
-        const B = py - y1;
-        const C = x2 - x1;
-        const D = y2 - y1;
-
-        const dot = A * C + B * D;
-        const len_sq = C * C + D * D;
-        const param = len_sq !== 0 ? dot / len_sq : -1;
-
-        let xx, yy;
-
-        if (param < 0) {
-            xx = x1;
-            yy = y1;
-        } else if (param > 1) {
-            xx = x2;
-            yy = y2;
-        } else {
-            xx = x1 + param * C;
-            yy = y1 + param * D;
-        }
-
-        const dx = px - xx;
-        const dy = py - yy;
+    // Function to check if a point is near a control point
+    function isPointNearControlPoint(px, py, x, y, tolerance = controlPointRadius) {
+        const dx = px - x;
+        const dy = py - y;
         return (dx * dx + dy * dy) <= tolerance * tolerance;
+    }
+
+    // Function to select a control point
+    function selectControlPoint(x, y) {
+        if (selectedDrawing) {
+            if (selectedDrawing.type === 'line') {
+                if (isPointNearControlPoint(x, y, selectedDrawing.startX, selectedDrawing.startY)) {
+                    return { type: 'line-start' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.endX, selectedDrawing.endY)) {
+                    return { type: 'line-end' };
+                }
+            } else if (selectedDrawing.type === 'rectangle') {
+                if (isPointNearControlPoint(x, y, selectedDrawing.x, selectedDrawing.y)) {
+                    return { type: 'rectangle-top-left' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.x + selectedDrawing.width, selectedDrawing.y)) {
+                    return { type: 'rectangle-top-right' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.x, selectedDrawing.y + selectedDrawing.height)) {
+                    return { type: 'rectangle-bottom-left' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.x + selectedDrawing.width, selectedDrawing.y + selectedDrawing.height)) {
+                    return { type: 'rectangle-bottom-right' };
+                }
+            } else if (selectedDrawing.type === 'circle') {
+                if (isPointNearControlPoint(x, y, selectedDrawing.centerX - selectedDrawing.radius, selectedDrawing.centerY)) {
+                    return { type: 'circle-left' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.centerX + selectedDrawing.radius, selectedDrawing.centerY)) {
+                    return { type: 'circle-right' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.centerX, selectedDrawing.centerY - selectedDrawing.radius)) {
+                    return { type: 'circle-top' };
+                } else if (isPointNearControlPoint(x, y, selectedDrawing.centerX, selectedDrawing.centerY + selectedDrawing.radius)) {
+                    return { type: 'circle-bottom' };
+                }
+            }
+            // Additional control point selection logic for other shapes can be added here
+        }
+        return null;
     }
 
     // Function to select a drawing
@@ -90,7 +154,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const drawing = drawings[i];
             if (drawing.type === 'line' && isPointNearLine(x, y, drawing.startX, drawing.startY, drawing.endX, drawing.endY)) {
                 return drawing;
-            }else if(drawing.type === 'quadratic-curve' && isPointNearLine(x, y, drawing.startX, drawing.startY, drawing.endX, drawing.endY)){
+            } else if (drawing.type === 'rectangle' && isPointInRectangle(x, y, drawing.x, drawing.y, drawing.width, drawing.height)) {
+                return drawing;
+            } else if (drawing.type === 'circle' && isPointInCircle(x, y, drawing.centerX, drawing.centerY, drawing.radius)) {
                 return drawing;
             }
             // Additional selection logic for other shapes can be added here
@@ -110,48 +176,55 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Handle edit mode button click
     document.getElementById('editModeButton').addEventListener('click', () => {
         drawMode = 'edit';
-        isEditing = false; // Ensure editing is false until a shape is selected
+        isEditing = false; // Ensure editing is false initially
+        selectedDrawing = null;
     });
 
-    // Handle mouse down event
+    // Handle mouse down event for drawing or selecting shapes
     canvas.addEventListener('mousedown', (event) => {
         const x = event.offsetX;
         const y = event.offsetY;
 
         if (drawMode === 'edit') {
-            // Check if clicking on a drawing to edit
-            const drawing = selectDrawing(x, y);
-            if (drawing) {
-                isEditing = true;
-                selectedDrawing = drawing;
-                offsetX = x;
-                offsetY = y;
+            // Toggle editing mode
+            if (!isEditing) {
+                selectedDrawing = selectDrawing(x, y);
+                if (selectedDrawing) {
+                    isEditing = true;
+                    offsetX = x;
+                    offsetY = y;
+                }
+            } else {
+                selectedControlPoint = selectControlPoint(x, y);
+                if (!selectedControlPoint) {
+                    isEditing = false;
+                    selectedDrawing = null;
+                }
             }
         } else if (drawMode === 'quadratic-curve') {
-            // Collect control points for quadratic curve
-            controlPoints.push({ x, y });
-
-            // Draw quadratic curve when enough control points are collected
-            if (controlPoints.length === maxControlPoints + 1) {
-                const [start, control, end] = controlPoints;
-                drawings.push({ type: 'quadratic-curve', startX: start.x, startY: start.y, controlX: control.x, controlY: control.y, endX: end.x, endY: end.y });
-                drawQuadraticCurve(start.x, start.y, control.x, control.y, end.x, end.y);
-                controlPoints = []; // Reset control points after drawing
+            if (controlPoints.length < maxControlPoints) {
+                controlPoints.push({ x, y });
+            } else {
+                const [start, control] = controlPoints;
+                drawings.push({ type: 'quadratic-curve', startX: start.x, startY: start.y, controlX: control.x, controlY: control.y, endX: x, endY: y });
+                drawQuadraticCurve(start.x, start.y, control.x, control.y, x, y);
+                controlPoints = [];
             }
         } else {
-            // Start drawing a line or semi-circle
+            // Start drawing mode
             startX = x;
             startY = y;
             isDrawing = true;
         }
     });
 
-    // Handle mouse up event
+    // Handle mouse up event for completing drawing or editing shapes
     canvas.addEventListener('mouseup', (event) => {
-        if (isDrawing) {
-            const endX = event.offsetX;
-            const endY = event.offsetY;
+        const endX = event.offsetX;
+        const endY = event.offsetY;
 
+        if (isDrawing) {
+            // Complete drawing mode
             if (drawMode === 'line') {
                 drawings.push({ type: 'line', startX, startY, endX, endY });
                 drawLine(startX, startY, endX, endY);
@@ -159,6 +232,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 const radius = Math.hypot(endX - startX, endY - startY);
                 drawings.push({ type: 'semi-circle', centerX: startX, centerY: startY, radius, startAngle: 0, endAngle: Math.PI });
                 drawSemiCircle(startX, startY, radius, 0, Math.PI);
+            } else if (drawMode === 'rectangle') {
+                const width = endX - startX;
+                const height = endY - startY;
+                drawings.push({ type: 'rectangle', x: startX, y: startY, width, height });
+                drawRectangle(startX, startY, width, height);
+            } else if (drawMode === 'circle') {
+                const radius = Math.hypot(endX - startX, endY - startY);
+                drawings.push({ type: 'circle', centerX: startX, centerY: startY, radius });
+                drawCircle(startX, startY, radius);
             }
 
             isDrawing = false;
@@ -175,7 +257,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const y = event.offsetY;
 
         if (isDrawing) {
-            // Dynamic feedback for line or semi-circle drawing
+            // Dynamic feedback for line, rectangle, circle, or semi-circle drawing
             const endX = x;
             const endY = y;
 
@@ -186,6 +268,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
             } else if (drawMode === 'semi-circle') {
                 const radius = Math.hypot(endX - startX, endY - startY);
                 drawSemiCircle(startX, startY, radius, 0, Math.PI);
+            } else if (drawMode === 'rectangle') {
+                const width = endX - startX;
+                const height = endY - startY;
+                drawRectangle(startX, startY, width, height);
+            } else if (drawMode === 'circle') {
+                const radius = Math.hypot(endX - startX, endY - startY);
+                drawCircle(startX, startY, radius);
             }
         } else if (drawMode === 'quadratic-curve' && controlPoints.length > 0) {
             // Dynamic feedback for quadratic curve drawing
@@ -201,20 +290,59 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 drawLine(start.x, start.y, currentX, currentY);
             }
         } else if (isEditing && selectedDrawing) {
-            // Move selected drawing
+            // Move or edit selected drawing
             const dx = x - offsetX;
             const dy = y - offsetY;
 
             offsetX = x;
             offsetY = y;
 
-            if (selectedDrawing.type === 'line') {
-                selectedDrawing.startX += dx;
-                selectedDrawing.startY += dy;
-                selectedDrawing.endX += dx;
-                selectedDrawing.endY += dy;
+            if (selectedControlPoint) {
+                // Editing control points
+                if (selectedControlPoint.type === 'line-start') {
+                    selectedDrawing.startX += dx;
+                    selectedDrawing.startY += dy;
+                } else if (selectedControlPoint.type === 'line-end') {
+                    selectedDrawing.endX += dx;
+                    selectedDrawing.endY += dy;
+                } else if (selectedControlPoint.type === 'rectangle-top-left') {
+                    selectedDrawing.x += dx;
+                    selectedDrawing.y += dy;
+                    selectedDrawing.width -= dx;
+                    selectedDrawing.height -= dy;
+                } else if (selectedControlPoint.type === 'rectangle-top-right') {
+                    selectedDrawing.y += dy;
+                    selectedDrawing.width += dx;
+                    selectedDrawing.height -= dy;
+                } else if (selectedControlPoint.type === 'rectangle-bottom-left') {
+                    selectedDrawing.x += dx;
+                    selectedDrawing.width -= dx;
+                    selectedDrawing.height += dy;
+                } else if (selectedControlPoint.type === 'rectangle-bottom-right') {
+                    selectedDrawing.width += dx;
+                    selectedDrawing.height += dy;
+                } else if (selectedControlPoint.type === 'circle-left' || selectedControlPoint.type === 'circle-right') {
+                    selectedDrawing.radius = Math.abs(selectedDrawing.centerX - x);
+                } else if (selectedControlPoint.type === 'circle-top' || selectedControlPoint.type === 'circle-bottom') {
+                    selectedDrawing.radius = Math.abs(selectedDrawing.centerY - y);
+                }
+                // Additional logic for other control points can be added here
+            } else {
+                // Moving the whole shape
+                if (selectedDrawing.type === 'line') {
+                    selectedDrawing.startX += dx;
+                    selectedDrawing.startY += dy;
+                    selectedDrawing.endX += dx;
+                    selectedDrawing.endY += dy;
+                } else if (selectedDrawing.type === 'rectangle') {
+                    selectedDrawing.x += dx;
+                    selectedDrawing.y += dy;
+                } else if (selectedDrawing.type === 'circle') {
+                    selectedDrawing.centerX += dx;
+                    selectedDrawing.centerY += dy;
+                }
+                // Additional logic for other shapes can be added here
             }
-            // Additional logic for other shapes can be added here
 
             clearCanvas();
             redrawAllDrawings();
