@@ -2,7 +2,9 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const backgroundCanvas = document.getElementById('backgroundCanvas');
 const bgCtx = backgroundCanvas.getContext('2d');
-let gridSize = 10;
+let gridSize = 10; // assuming gridSize remains as 10
+let dotSpacing = gridSize * 2; // dots every second intersection
+let dotRadius = 2; // radius of the dots
 let tool = 'line';
 let startX, startY, isDrawing = false;
 let shapes = [];
@@ -22,12 +24,13 @@ function drawGrid() {
     ctx.save();
     ctx.translate(translateX, translateY);
     ctx.scale(scale, scale);
-    for (let x = 0; x <= canvas.width; x += gridSize) {
-        for (let y = 0; y <= canvas.height; y += gridSize) {
+    ctx.fillStyle = '#ccc'; // dot color
+
+    for (let x = 0; x <= canvas.width; x += dotSpacing) {
+        for (let y = 0; y <= canvas.height; y += dotSpacing) {
             ctx.beginPath();
-            ctx.rect(x, y, gridSize, gridSize);
-            ctx.strokeStyle = '#ccc';
-            ctx.stroke();
+            ctx.arc(x, y, dotRadius, 0, 2 * Math.PI);
+            ctx.fill();
         }
     }
     ctx.restore();
@@ -92,12 +95,6 @@ canvas.addEventListener('mousemove', (e) => {
         drawPreviewShape(startX, startY, pos.x, pos.y);
     } else {
         drawMouseHighlight(pos.x, pos.y);
-    }
-});
-
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 'z') {
-      undo();
     }
 });
 
@@ -169,7 +166,7 @@ function drawMouseHighlight(x, y) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.beginPath();
-    ctx.rect(x - gridSize / 2, y - gridSize / 2, gridSize, gridSize);
+    ctx.arc(x, y, dotRadius * 2, 0, 2 * Math.PI); // Make the highlight larger than grid dots
     ctx.strokeStyle = 'red';
     ctx.stroke();
     ctx.restore();
@@ -224,6 +221,12 @@ function undo() {
     }
 }
 
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 'z') {
+      undo();
+    }
+  });
+
 function redo() {
     if (shapesSecond.length > 0) {
         shapes.push(shapesSecond.pop());
@@ -231,5 +234,53 @@ function redo() {
     }
 }
 
+function saveMap() {
+    const fileName = document.getElementById('saveFileName').value;
+    console.log("fileName : " + fileName);
+    if(fileName == ""){
+        alert("Please enter a file name for saving");
+        return;
+    }
+    const mapData = {
+        shapes: shapes,
+        backgroundOpacity: backgroundOpacity,
+        imgSrc: imgElement.src
+    };
+    const dataStr = JSON.stringify(mapData);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', `${fileName}.json`);
+    linkElement.click();
+}
+
+function handleMapLoad(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const mapData = JSON.parse(e.target.result);
+            shapes = mapData.shapes || [];
+            backgroundOpacity = mapData.backgroundOpacity || 1.0;
+            imgElement.src = mapData.imgSrc || '';
+
+            if (imgElement.src) {
+                imgElement.onload = function() {
+                    drawBackgroundImage();
+                    redrawShapes();
+                };
+            } else {
+                drawBackgroundImage();
+                redrawShapes();
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+function loadMap() {
+    document.getElementById('mapLoader').click();
+}
 // Initial draw
 drawGrid();
