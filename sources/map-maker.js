@@ -1,5 +1,7 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const backgroundCanvas = document.getElementById('backgroundCanvas');
+const bgCtx = backgroundCanvas.getContext('2d');
 let gridSize = 10;
 let tool = 'line';
 let startX, startY, isDrawing = false;
@@ -7,13 +9,12 @@ let shapes = [];
 let scale = 1;
 const maxScale = 5;
 const minScale = 1;
+let imgElement = new Image();
+let backgroundOpacity = 1.0;
 
 // Variables to keep track of translation
 let translateX = 0;
 let translateY = 0;
-
-let backgroundImage = null;
-let imgElement = new Image();
 
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -24,7 +25,7 @@ function drawGrid() {
         for (let y = 0; y <= canvas.height; y += gridSize) {
             ctx.beginPath();
             ctx.rect(x, y, gridSize, gridSize);
-            ctx.strokeStyle = '#ccc';
+            ctx.strokeStyle = 'rgba(217,217,217,0.31)';
             ctx.stroke();
         }
     }
@@ -41,17 +42,14 @@ function getGridPosition(e) {
     return { x: gridX, y: gridY };
 }
 
-
 function setTool(SelectedTools){
     tool = SelectedTools;
 }
 
-// Transform to canvas coordinates considering scale
 function toCanvasCoordinates(x, y) {
     return { x: x / scale, y: y / scale };
 }
 
-// Transform to scaled coordinates
 function toScaledCoordinates(x, y) {
     return { x: x * scale, y: y * scale };
 }
@@ -70,7 +68,6 @@ canvas.addEventListener('mouseup', (e) => {
     const endY = pos.y;
     isDrawing = false;
 
-    // Store the original coordinates relative to the grid (unscaled)
     shapes.push({
         tool,
         startX: startX / scale,
@@ -81,23 +78,17 @@ canvas.addEventListener('mouseup', (e) => {
     redrawShapes();
 });
 
-// Ensure that the background image is drawn before the grid and shapes
 canvas.addEventListener('mousemove', (e) => {
+    const pos = getGridPosition(e);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+    redrawShapes();
     if (isDrawing) {
-        const pos = getGridPosition(e);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawGrid();
-        redrawShapes();
         drawPreviewShape(startX, startY, pos.x, pos.y);
     } else {
-        const pos = getGridPosition(e);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawGrid();
-        redrawShapes();
         drawMouseHighlight(pos.x, pos.y);
     }
 });
-
 
 function redrawShapes() {
     drawGrid();
@@ -124,7 +115,6 @@ function redrawShapes() {
 }
 
 function drawPreviewShape(x1, y1, x2, y2) {
-    // Draw with current scaling
     ctx.save();
     ctx.scale(scale, scale);
     switch (tool) {
@@ -178,6 +168,43 @@ function openImagePicker() {
     document.getElementById('imagePicker').click();
 }
 
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imgElement.onload = function() {
+                drawBackgroundImage();
+                redrawShapes();
+            };
+            imgElement.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
 
-// Ensure initial draw includes the background image if set
+function drawBackgroundImage() {
+    if (imgElement.src) {
+        const aspectRatio = imgElement.width / imgElement.height;
+        const imgHeight = backgroundCanvas.height;
+        const imgWidth = imgHeight * aspectRatio;
+
+        // Calculate the position to center the image
+        const x = (backgroundCanvas.width - imgWidth) / 2;
+        const y = 0;
+
+        bgCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        bgCtx.globalAlpha = backgroundOpacity;
+        bgCtx.drawImage(imgElement, x, y, imgWidth, imgHeight);
+        bgCtx.globalAlpha = 1.0; // Reset opacity
+    }
+}
+
+function setOpacity(value) {
+    backgroundOpacity = value;
+    drawBackgroundImage();
+    redrawShapes();
+}
+
+// Initial draw
 drawGrid();
