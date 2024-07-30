@@ -16,9 +16,13 @@
         <button onclick="setTool('selector')">Selector</button>
         <button onclick="saveMap()">Save</button>
         <button onclick="loadMap()">Load</button>
-        Grid Size: <input type="number" id="gridSize" min="10" max="50" value="10" onchange="changeGridSize()">
+        <button onclick="openImagePicker()">Set Background Image</button>
+        <input type="file" id="imagePicker" style="display: none;" accept="image/*" onchange="handleImageUpload(event)">
+        <label for="opacityRange">Background Opacity:</label>
+        <input type="range" id="opacityRange" min="0" max="1" step="0.01" value="1" oninput="setOpacity(this.value)">
     </div>
-    <canvas id="canvas" width="1800" height="800"></canvas>
+    <canvas id="backgroundCanvas" width="1800" height="800" style="position: absolute; z-index: 0;"></canvas>
+    <canvas id="canvas" width="1800" height="800" style="position: absolute; z-index: 1;"></canvas>
     <script src="sources/map-maker.js"></script>
 </body>
 </html>

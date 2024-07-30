@@ -3,15 +3,22 @@ const ctx = canvas.getContext('2d');
 let gridSize = 10;
 let tool = 'line';
 let startX, startY, isDrawing = false;
-const shapes = [];
+let shapes = [];
 let scale = 1;
 const maxScale = 5;
 const minScale = 1;
 
-// Draw grid
+// Variables to keep track of translation
+let translateX = 0;
+let translateY = 0;
+
+let backgroundImage = null;
+let imgElement = new Image();
+
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
+    ctx.translate(translateX, translateY);
     ctx.scale(scale, scale);
     for (let x = 0; x <= canvas.width; x += gridSize) {
         for (let y = 0; y <= canvas.height; y += gridSize) {
@@ -23,6 +30,17 @@ function drawGrid() {
     }
     ctx.restore();
 }
+
+function getGridPosition(e) {
+    const rect = canvas.getBoundingClientRect();
+    // Consider the current translation and scaling
+    const mouseX = (e.clientX - rect.left - translateX) / scale;
+    const mouseY = (e.clientY - rect.top - translateY) / scale;
+    const gridX = Math.floor(mouseX / gridSize) * gridSize + gridSize / 2;
+    const gridY = Math.floor(mouseY / gridSize) * gridSize + gridSize / 2;
+    return { x: gridX, y: gridY };
+}
+
 
 function setTool(SelectedTools){
     tool = SelectedTools;
@@ -36,16 +54,6 @@ function toCanvasCoordinates(x, y) {
 // Transform to scaled coordinates
 function toScaledCoordinates(x, y) {
     return { x: x * scale, y: y * scale };
-}
-
-// Get position in grid coordinates
-function getGridPosition(e) {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) / scale;
-    const mouseY = (e.clientY - rect.top) / scale;
-    const gridX = Math.floor(mouseX / gridSize) * gridSize + gridSize / 2;
-    const gridY = Math.floor(mouseY / gridSize) * gridSize + gridSize / 2;
-    return { x: gridX, y: gridY };
 }
 
 canvas.addEventListener('mousedown', (e) => {
@@ -73,6 +81,7 @@ canvas.addEventListener('mouseup', (e) => {
     redrawShapes();
 });
 
+// Ensure that the background image is drawn before the grid and shapes
 canvas.addEventListener('mousemove', (e) => {
     if (isDrawing) {
         const pos = getGridPosition(e);
@@ -89,24 +98,16 @@ canvas.addEventListener('mousemove', (e) => {
     }
 });
 
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0 && scale < maxScale) {
-        scale += 0.1;
-    } else if (e.deltaY > 0 && scale > minScale) {
-        scale -= 0.1;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    redrawShapes();
-});
 
 function redrawShapes() {
+    drawGrid();
     shapes.forEach(shape => {
         const { tool, startX, startY, endX, endY } = shape;
-        // Scale coordinates back when drawing
         const { x: sx, y: sy } = toScaledCoordinates(startX, startY);
         const { x: ex, y: ey } = toScaledCoordinates(endX, endY);
+        ctx.save();
+        ctx.translate(translateX, translateY);
+        ctx.scale(scale, scale);
         switch (tool) {
             case 'line':
                 drawLine(sx, sy, ex, ey);
@@ -118,6 +119,7 @@ function redrawShapes() {
                 drawCircle(sx, sy, ex, ey);
                 break;
         }
+        ctx.restore();
     });
 }
 
@@ -130,10 +132,10 @@ function drawPreviewShape(x1, y1, x2, y2) {
             drawLine(x1 , y1 , x2 , y2);
             break;
         case 'rectangle':
-            drawRectangle(x1 * scale, y1 * scale, x2 * scale, y2 * scale);
+            drawRectangle(x1, y1, x2, y2);
             break;
         case 'circle':
-            drawCircle(x1 * scale, y1 * scale, x2 * scale, y2 * scale);
+            drawCircle(x1, y1, x2, y2);
             break;
     }
     ctx.restore();
@@ -172,5 +174,10 @@ function drawMouseHighlight(x, y) {
     ctx.restore();
 }
 
-// Initialize the canvas with the grid
+function openImagePicker() {
+    document.getElementById('imagePicker').click();
+}
+
+
+// Ensure initial draw includes the background image if set
 drawGrid();
