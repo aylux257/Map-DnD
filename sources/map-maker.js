@@ -6,6 +6,7 @@ let gridSize = 10;
 let tool = 'line';
 let startX, startY, isDrawing = false;
 let shapes = [];
+let shapesSecond = [];
 let scale = 1;
 const maxScale = 5;
 const minScale = 1;
@@ -25,7 +26,7 @@ function drawGrid() {
         for (let y = 0; y <= canvas.height; y += gridSize) {
             ctx.beginPath();
             ctx.rect(x, y, gridSize, gridSize);
-            ctx.strokeStyle = 'rgba(217,217,217,0.31)';
+            ctx.strokeStyle = '#ccc';
             ctx.stroke();
         }
     }
@@ -75,6 +76,10 @@ canvas.addEventListener('mouseup', (e) => {
         endX: endX / scale,
         endY: endY / scale
     });
+
+    // Clear redo stack since new shape is drawn
+    shapesSecond = [];
+    
     redrawShapes();
 });
 
@@ -87,6 +92,12 @@ canvas.addEventListener('mousemove', (e) => {
         drawPreviewShape(startX, startY, pos.x, pos.y);
     } else {
         drawMouseHighlight(pos.x, pos.y);
+    }
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 'z') {
+      undo();
     }
 });
 
@@ -204,6 +215,20 @@ function setOpacity(value) {
     backgroundOpacity = value;
     drawBackgroundImage();
     redrawShapes();
+}
+
+function undo() {
+    if (shapes.length > 0) {
+        shapesSecond.push(shapes.pop());
+        redrawShapes();
+    }
+}
+
+function redo() {
+    if (shapesSecond.length > 0) {
+        shapes.push(shapesSecond.pop());
+        redrawShapes();
+    }
 }
 
 // Initial draw
