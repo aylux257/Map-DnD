@@ -23,9 +23,13 @@
         <button onclick="saveMap()">Save Map</button>
         <button onclick="loadMap()">Load Map</button>
         <input type="file" id="mapLoader" style="display: none;" accept=".json" onchange="handleMapLoad(event)">
+        <button onclick="createToken()">Create Token</button>
+        <button onclick="playVisual()">Play Visual</button>
     </div>
     <canvas id="backgroundCanvas" width="1800" height="800" style="position:absolute; left:0; top:0;"></canvas>
     <canvas id="canvas" width="1800" height="800" style="position:absolute; left:0; top:0;"></canvas>
-    <script src="sources/map-maker.js"></script>
+    <script src="sources/canvas-drawing.js"></script>
+    <script src="sources/token-management.js"></script>
+    <script src="sources/play-visual.js"></script>
 </body>
 </html>

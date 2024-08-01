@@ -1,10 +1,11 @@
+// canvas-drawing.js
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const backgroundCanvas = document.getElementById('backgroundCanvas');
 const bgCtx = backgroundCanvas.getContext('2d');
-let gridSize = 10; // assuming gridSize remains as 10
-let dotSpacing = gridSize * 2; // dots every second intersection
-let dotRadius = 2; // radius of the dots
+let gridSize = 10;
+let dotSpacing = gridSize * 2;
+let dotRadius = 2;
 let tool = 'line';
 let startX, startY, isDrawing = false;
 let shapes = [];
@@ -15,7 +16,6 @@ const minScale = 1;
 let imgElement = new Image();
 let backgroundOpacity = 1.0;
 
-// Variables to keep track of translation
 let translateX = 0;
 let translateY = 0;
 
@@ -24,7 +24,7 @@ function drawGrid() {
     ctx.save();
     ctx.translate(translateX, translateY);
     ctx.scale(scale, scale);
-    ctx.fillStyle = '#ccc'; // dot color
+    ctx.fillStyle = '#ccc';
 
     for (let x = 0; x <= canvas.width; x += dotSpacing) {
         for (let y = 0; y <= canvas.height; y += dotSpacing) {
@@ -38,7 +38,6 @@ function drawGrid() {
 
 function getGridPosition(e) {
     const rect = canvas.getBoundingClientRect();
-    // Consider the current translation and scaling
     const mouseX = (e.clientX - rect.left - translateX) / scale;
     const mouseY = (e.clientY - rect.top - translateY) / scale;
     const gridX = Math.floor(mouseX / gridSize) * gridSize + gridSize / 2;
@@ -80,7 +79,6 @@ canvas.addEventListener('mouseup', (e) => {
         endY: endY / scale
     });
 
-    // Clear redo stack since new shape is drawn
     shapesSecond = [];
     
     redrawShapes();
@@ -91,6 +89,7 @@ canvas.addEventListener('mousemove', (e) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawGrid();
     redrawShapes();
+    redrawTokens();
     if (isDrawing) {
         drawPreviewShape(startX, startY, pos.x, pos.y);
     } else {
@@ -166,7 +165,7 @@ function drawMouseHighlight(x, y) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.beginPath();
-    ctx.arc(x, y, dotRadius * 2, 0, 2 * Math.PI); // Make the highlight larger than grid dots
+    ctx.arc(x, y, dotRadius * 2, 0, 2 * Math.PI);
     ctx.strokeStyle = 'red';
     ctx.stroke();
     ctx.restore();
@@ -184,6 +183,7 @@ function handleImageUpload(event) {
             imgElement.onload = function() {
                 drawBackgroundImage();
                 redrawShapes();
+                redrawTokens();
             };
             imgElement.src = e.target.result;
         };
@@ -197,14 +197,13 @@ function drawBackgroundImage() {
         const imgHeight = backgroundCanvas.height;
         const imgWidth = imgHeight * aspectRatio;
 
-        // Calculate the position to center the image
         const x = (backgroundCanvas.width - imgWidth) / 2;
         const y = 0;
 
         bgCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
         bgCtx.globalAlpha = backgroundOpacity;
         bgCtx.drawImage(imgElement, x, y, imgWidth, imgHeight);
-        bgCtx.globalAlpha = 1.0; // Reset opacity
+        bgCtx.globalAlpha = 1.0;
     }
 }
 
@@ -212,39 +211,42 @@ function setOpacity(value) {
     backgroundOpacity = value;
     drawBackgroundImage();
     redrawShapes();
+    redrawTokens();
 }
 
 function undo() {
     if (shapes.length > 0) {
         shapesSecond.push(shapes.pop());
         redrawShapes();
+        redrawTokens();
     }
 }
 
 document.addEventListener('keydown', function(event) {
     if (event.ctrlKey && event.key === 'z') {
-      undo();
+        undo();
     }
-  });
+});
 
 function redo() {
     if (shapesSecond.length > 0) {
         shapes.push(shapesSecond.pop());
         redrawShapes();
+        redrawTokens();
     }
 }
 
 function saveMap() {
     const fileName = document.getElementById('saveFileName').value;
-    console.log("fileName : " + fileName);
-    if(fileName == ""){
+    if (fileName == "") {
         alert("Please enter a file name for saving");
         return;
     }
     const mapData = {
         shapes: shapes,
         backgroundOpacity: backgroundOpacity,
-        imgSrc: imgElement.src
+        imgSrc: imgElement.src,
+        tokens: tokens
     };
     const dataStr = JSON.stringify(mapData);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -264,15 +266,18 @@ function handleMapLoad(event) {
             shapes = mapData.shapes || [];
             backgroundOpacity = mapData.backgroundOpacity || 1.0;
             imgElement.src = mapData.imgSrc || '';
+            tokens = mapData.tokens || [];
 
             if (imgElement.src) {
                 imgElement.onload = function() {
                     drawBackgroundImage();
                     redrawShapes();
+                    redrawTokens();
                 };
             } else {
                 drawBackgroundImage();
                 redrawShapes();
+                redrawTokens();
             }
         };
         reader.readAsText(file);
@@ -282,5 +287,3 @@ function handleMapLoad(event) {
 function loadMap() {
     document.getElementById('mapLoader').click();
 }
-// Initial draw
-drawGrid();
