@@ -6,7 +6,7 @@ const bgCtx = backgroundCanvas.getContext('2d');
 let gridSize = 10;
 let dotSpacing = gridSize * 2;
 let dotRadius = 2;
-let tool = 'line';
+let tool = 'rectangle';
 let startX, startY, isDrawing = false;
 let shapes = [];
 let shapesSecond = [];
@@ -45,8 +45,15 @@ function getGridPosition(e) {
     return { x: gridX, y: gridY };
 }
 
-function setTool(SelectedTools){
-    tool = SelectedTools;
+function setTool(selectedTool) {
+    tool = selectedTool;
+    if (tool === 'line' || tool === 'rectangle' || tool === 'circle' || tool === 'pencil') {
+        isDrawing = true;
+        isMovingToken = false;
+    } else if (tool === 'none') {
+        isDrawing = false;
+        isMovingToken = true;
+    }
 }
 
 function toCanvasCoordinates(x, y) {
@@ -58,6 +65,7 @@ function toScaledCoordinates(x, y) {
 }
 
 canvas.addEventListener('mousedown', (e) => {
+    if (tool === 'none') return; // Do nothing if the "Stop Drawing" tool is selected
     const pos = getGridPosition(e);
     startX = pos.x;
     startY = pos.y;
@@ -65,7 +73,7 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('mouseup', (e) => {
-    if (!isDrawing) return;
+    if (!isDrawing || tool === 'none') return; // Ignore if not drawing or "Stop Drawing" is active
     const pos = getGridPosition(e);
     const endX = pos.x;
     const endY = pos.y;
@@ -90,7 +98,7 @@ canvas.addEventListener('mousemove', (e) => {
     drawGrid();
     redrawShapes();
     redrawTokens();
-    if (isDrawing) {
+    if (isDrawing && tool !== 'none') { // Draw only if not in "Stop Drawing" mode
         drawPreviewShape(startX, startY, pos.x, pos.y);
     } else {
         drawMouseHighlight(pos.x, pos.y);
